@@ -1,3 +1,6 @@
+# RShiny app 
+# Changes to be made to adapt in this script have been commented with 'Provide'
+
 # # Install + load libraries ----
 # packages <- c("shiny", "readxl", "bslib", "sortable", "shinythemes", "shinyWidgets",
 #               "decisionSupport", "tidyverse", "ggridges", "here",
@@ -19,6 +22,11 @@ if (!requireNamespace("shiny", quietly = TRUE)) {
   install.packages("shiny")
 }
 library(shiny)
+
+if (!requireNamespace("waiter", quietly = TRUE)) {
+  install.packages("waiter")
+}
+library(waiter)
 
 if (!requireNamespace("readxl", quietly = TRUE)) {
   install.packages("readxl")
@@ -82,14 +90,14 @@ if (!requireNamespace("ggh4x", quietly = TRUE)) {
 }
 library(ggh4x)
 
-
+# Provide Location of DA model script, dynamic-helper and funding-server scripts
 # source("functions/saveLoad-module.R")
-source("functions/DA_for_exploring_funding_effects_data_visualisation.R")
+#source("functions/DA_for_exploring_funding_effects_data_visualisation.R")
 source("functions/DA_for_exploring_funding_effects_decision_model.R")
 source("functions/dynamic-helper.R")
 source("functions/funding_server.R")
-
-file_path_vars <- "data/Apple_AF_Steinfurt_wRisk_30.xlsx"
+# Provide Location of excel workbook containing the input parameters (prepared for the dynamic-helper)
+file_path_vars <- "data/AF_Financial_Scheme.xlsx"
 sheet_meta <- readxl::read_excel(file_path_vars, sheet = "sheet_names",
                                  col_types = c("text", "text"))
 sheet_names <- sheet_meta$sheet_names
@@ -104,29 +112,57 @@ ui <- fluidPage(
   
   theme = bs_theme(version = 5,
                    bootswatch = 'flatly',
-                   base_font = font_google("Roboto")), 
-  ## Title ----
-  titlePanel(
-    tags$div(
-      style = "display:flex; align-items:center;justify-content:space-between;
+                   base_font = font_google("Roboto")),
+  
+  use_waiter(),
+  
+  # Set actual browser tab title and favicon
+  tags$head(
+    tags$title("Agroforestry Decision Support Tool"),
+    tags$link(rel = "shortcut icon", href = "INRES.png"),
+    
+    tags$style(HTML("
+    /* Scroll wrapper: scrolls horizontally *and* vertically only when needed */
+    .scroll-xy {
+      overflow-x: auto;                 /* left–right scroll  */
+      overflow-y: auto;                 /* top–bottom scroll  */
+      -webkit-overflow-scrolling: touch;/* smooth on iOS      */
+      max-height: 80vh;                 /* optional: stop it taking more than
+                                         80 % of the viewport height       */
+  }
+  
+  /* Keep any Shiny plot inside that wrapper from shrinking */
+  .scroll-xy .shiny-plot-output {
+    min-width: 900px;                 /* choose your desktop width */
+  }
+                    ")
+    )
+  ),
+  
+  tags$div(
+    style = "display:flex; align-items:center;justify-content:space-between;
       width: 100% !important; margin: 20px; padding: 0 15px;
       box-sizing: border-box; background-color: #f2f2f2;",
-      
-      # tags$a(href = "https://www.uni-bonn.de", target = "_blank",
-      tags$img(src = "UniBonnHortiBonn_logo_transparent.png", height = "100px",
-               style = "margin-left: auto; max-width: 20%; height: auto; cursor: pointer;"),
-      # ),
-      
-      tags$h2(tags$div("Decision Analysis:"),
-              tags$div("conversion of cropland into apple alley-cropping"),
-              style = "text-align: center; flex-grow: 1;"),
-      
-      # tags$a(href = "https://www.uni-bonn.de", target = "_blank",
-      tags$img(src = "ReFOREST_logo_horizontal_transparent.png", height = "100px",
-               style = "margin-right: auto; max-width: 30%; height: auto; cursor: pointer;")
-      # ),
-    ),
+    
+    # tags$a(href = "https://www.uni-bonn.de", target = "_blank",
+    tags$img(src = "UniBonnHortiBonn_logo_transparent.png", height = "100px",
+             style = "margin-left: auto; max-width: 20%; height: auto; cursor: pointer;"),
+    tags$img(src = "emea_logo_large.jpg", height = "20px",
+             style = "display: inline-block; vertical-align: middle; max-width: 6%; height: auto; cursor: pointer;"),
+    
+    
+    # ),
+    # Provide Title of the DA model
+    tags$h2(tags$div("Decision:"),
+            tags$div("convert cropland into an alley-cropping system"),
+            style = "text-align: center; flex-grow: 1;"),
+    # Provide Project Logo
+    # tags$a(href = "https://www.uni-bonn.de", target = "_blank",
+    tags$img(src = "ReFOREST_logo_horizontal_transparent.png", height = "100px",
+             style = "margin-right: auto; max-width: 30%; height: auto; cursor: pointer;")
+    # ),
   ),
+  
   
   ## Sidebar ----
   sidebarLayout(
@@ -175,13 +211,7 @@ ui <- fluidPage(
                          "Expertise categories",
                          tags$span(
                            icon("circle-question"),
-                           title = "Select your main expertise to modify only the variables suited to such expertise. Ultimately, we are all experts to a higher or lower degree in all categories. You too :) 
-                           
-                           But we recommend that the first time you use this interface you select only one or two categories in order to get familiar with it. The simulations will still run with the default values for those expertise categories that you do not select.
-                           
-                           If you do not check any box, you will see all the variables of the model (i.e.: all expertise categories).
-                           
-                           If you are the decision maker, e.g.: you are a farmer thinking about implementing agroforestry in treeles land, please check the Decision Maker box to set basic variables that serve to quantify your interests and motivations",
+                           title = "Select your main expertise to view and edit only relevant variables.\nNot selecting any box shows all variables.\nDefaults apply to unselected categories in simulations.",
                            style = "cursor: help; margin-left: 8px;"
                          )
                        ),
@@ -235,60 +265,105 @@ ui <- fluidPage(
               #     )
               #   )
               # ),
-              tags$h5(
-                "This app serves to simulate the present value of converting a treeless arable field into alley cropping with fruit and/or high-value timber trees. It also allows to account for hedgerows in the hedges of the alley cropping field.\n
-              You can modify the value ranges of all the variables of the calculator by opening the tabs in left-hand side of the screen.\n
-              By doing so, you can account for the locally-specific environment and socio-economic context.\n
-              In the tab 'Expertise categories' you can select the categories for which you want to modify the default values. This is useful if you do not feel confident enough to provide estimates for all the variables of the model.\n
-              When clicking 'Run the model', the app will perform multiple runs of the model, each with a unique combination of values of the input variables, always within the range defined by the bars of the left-hand side tabs.\n
-              After the model is computed, the results will be displayed here below\n
-              In the tab 'Funding schemes' you can select the funding scheme of your region of interest. If you do not find the funding schemes of your regions of interest, please contact us to include it (mjimene1@uni-bonn.de)"
+              # Provide brief explanation of the DA model
+              tags$h6(
+                "This app simulates the present value of converting a treeless arable field into an alley cropping system with trees. It is kept very general so that all farmers irrespective of the type of treee they have planted or plan to plant on their farm can simulate and visualisze the impact it has on their Net Present Value (NPV).",
+                tags$br(),
+                tags$br(),
+                "Use the tabs on the left to adjust variable ranges based on your local conditions or design goals.",
+                tags$br(),
+                tags$br(),
+                "Click ‘Run model’ to perform a Monte Carlo simulation using random combinations from your defined ranges.You can save/load inputs, and once the model runs, results will appear below and you can save these figures.",
+                tags$br(),
+                tags$br(),
+                "In the ‘Funding schemes’ tab, select any relevant funding options for your region.",
+                tags$br(),
+                "DeFAF-suggested funding for German agroforestry: Annual support of 600 € per ha of wooded area and investment costs are to be funded at 100 % for first 10 ha of wooded area, 80 % for the next 10 ha, 50 % for additional area.",
+                tags$br(),
+                tags$br(),
+                "The Finanacial Scheme recommended by EMEA is modelled here and as a user you can select the ones that is most relevant to you.",
+                tags$br(),
+                "We welcome your feedback and encourage you to suggest additional funding schemes for your region. Feel free to contact",
+                tags$a(href = "mailto:pkasargo@uni-bonn.de", "Prajna Kasargodu Anebagilu"), "or", tags$a(href = "mailto:afuelle1@uni-bonn.de", "Adrain Fuelle."),
               ),
-              tags$a(
-                "Click here for latest info on Sustainable Farming Incentive",
-                href = "https://www.gov.uk/government/publications/sustainable-farming-incentive-scheme-expanded-offer-for-2024",
-                target="_blank",
-                class = "my-btn"
-              ),
+              # tags$a(
+              #   "Click here for latest info on Sustainable Farming Incentive",
+              #   href = "https://www.gov.uk/government/publications/sustainable-farming-incentive-scheme-expanded-offer-for-2024",
+              #   target="_blank",
+              #   class = "my-btn"
+              # ),
               br(), br(),
-              plotOutput("plot1_ui", height = "550px"),
+              
+              #titlePanel("Selected Financial Supports"),
+              #create_funding_ui("funding"),        # UI part from the module
+              #uiOutput("financial_support_links"),
+              tags$h4("Selected Funding Supports"),
+              tableOutput("summary"),
+              #verbatimTextOutput("summary"), 
+              # uiOutput("funding-financial-support"),
+              
+              br(), br(),
+              div(class = "scroll-xy",
+                  plotOutput("plot1_ui", height = "550px"),
+              ),
               br(),
               uiOutput("plot1_dl_ui"),
               br(), br(),br(), br(),
               
-              # plotOutput("plot2_ui", height = "550px"),
-              # br(),
-              # uiOutput("plot2_dl_ui"),
-              # br(), br(),br(), br(),
+              div(class = "scroll-xy",
+                  plotOutput("plot2_ui", height = "550px"),
+              ),
+              br(),
+              uiOutput("plot2_dl_ui"),
+              br(), br(),br(), br(),
               
-              plotOutput("plot3_ui", height = "550px"),
+              div(class = "scroll-xy",
+                  plotOutput("plot3_ui", height = "700px"),
+              ),
               br(),
               uiOutput("plot3_dl_ui"),
               br(), br(),br(), br(),
               
-              plotOutput("plot4_ui", height = "550px"),
+              div(class = "scroll-xy",
+                  plotOutput("plot4_ui", height = "550px"),
+              ),
               br(),
               uiOutput("plot4_dl_ui"),
               br(), br(),br(), br(),
               
-              plotOutput("plot5_ui", height = "550px"),
+              div(class = "scroll-xy",
+                  plotOutput("plot5_ui", height = "550px"),
+              ),
               br(),
               uiOutput("plot5_dl_ui"),
               br(), br(),br(), br(),
               
+              # div(class = "scroll-xy",
               # plotOutput("plot6_ui", height = "550px"),
+              # ),
               # br(),
               # uiOutput("plot6_dl_ui"),
               # br(), br(),br(), br(),
               # 
-              # plotOutput("plot7_ui", height = "550px"),
+              # div(class = "scroll-xy", plotOutput("plot7_ui", height = "550px"),),
               # br(),
               # uiOutput("plot7_dl_ui"),
               # br(), br(),br(), br(),
               
-              plotOutput("plot8_ui", height = "550px"),
+              div(class = "scroll-xy", 
+                  plotOutput("plot8_ui", height = "550px"),
+              ),
               br(),
               uiOutput("plot8_dl_ui"),
+              tags$img(src = "Funding_declaration.png", height = "100px",
+                       style = "margin-right: auto; max-width: 100%; height: auto; cursor: pointer;"),
+              tags$p(
+                tags$a("Disclaimer", href = "https://agroreforest.eu/reforest-tools-disclaimer/",
+                       target = "_blank"),
+                " | ",  
+                tags$a("View Source", href = "https://github.com/hortibonn/Apple_Agroforestry/",
+                       target = "_blank")
+              ),
               br(), br(),br(), br(),
               
     )
@@ -303,6 +378,24 @@ server <- function(input, output, session) {
   ## Dynamic funding module ----
   funding <- funding_server("funding")   # returns a list of reactives
   
+  output$`funding-financial-support` <- renderUI({
+    funding$financial_support_links
+  })
+  # output$summary <- renderPrint({
+  #   result$category_totals()          
+  output$summary <- renderTable({
+    
+    # Get the full funding totals (gov + private) as a named list
+    total_funding <- funding$total_funding_with_private()
+    
+    # Debug: data frame for table output ### remove for the final or can be displayed in the mainPanel too - upto @Adrain
+    data.frame(
+      `Funding Category` = str_to_title(str_replace_all(str_remove(names(total_funding), "_c$"), "_", " ")),
+      `Total Financial Support` = round(unname(total_funding), 2),
+      check.names = FALSE,
+      row.names = NULL
+    )
+  })
   ## Helper for safe extraction from named vector
   safe_get <- function(vec, name) {
     if (is.null(vec) || length(vec) == 0 || is.na(vec[name])) return(0)
@@ -310,52 +403,53 @@ server <- function(input, output, session) {
     as.numeric(vec[name])
   }
   
+  
   ## Wrapper -> *exact* variables the walnut model expects
-  funding_variables <- reactive({
-    sel <- funding$category_totals()        # named vector per category (gov)
-    
-    ## private inputs
-    onetime_private <- funding$onetime_private_input()
-    annual_private  <- funding$annual_private_input()
-    
-    # area / trees already entered elsewhere in UI
-    AF1_area  <- max(0, as.numeric(input$arable_area_c) - as.numeric(input$AF1_tree_row_area_c))
-    AF2_area  <- max(0, as.numeric(input$arable_area_c) - as.numeric(input$AF2_tree_row_area_c))
-    AF1_trees <- as.numeric(input$AF1_num_trees_c)
-    AF2_trees <- sum(as.numeric(input$num_oak_trees_c), as.numeric(input$num_birch_trees_c),
-                     as.numeric(input$num_rowan_trees_c), as.numeric(input$num_hazel_trees_c),
-                     as.numeric(input$num_damson_trees_c), as.numeric(input$num_bcherry_trees_c))
-    
-    # funding amounts per category
-    per_ha      <- safe_get(sel, "funding_onetime_per_ha_schemes_c")
-    per_tree    <- safe_get(sel, "funding_onetime_per_tree_schemes_c")
-    annual_ha   <- safe_get(sel, "annual_funding_schemes_c")
-    perc_incost <- safe_get(sel, "funding_onetime_percentage_incost_schemes_c")
-    perc_cons   <- safe_get(sel, "funding_onetime_percentage_consult_schemes_c")
-    
-    # Compute totals
-    AF1_one_time   <- per_ha   * AF1_area  + per_tree * AF1_trees + onetime_private
-    AF2_one_time   <- per_ha   * AF2_area  + per_tree * AF2_trees + onetime_private
-    AF1_annual     <- annual_ha * AF1_area + annual_private * AF1_area
-    AF2_annual     <- annual_ha * AF2_area + annual_private * AF2_area
-    
-    AF1_perc <- perc_incost   # tie whichever category decided for AF1
-    AF2_perc <- perc_cons     # … and AF2
-    any_perc <- as.numeric((AF1_perc + AF2_perc) > 0)
-    
-    data.frame(
-      variable = c("AF1_total_annual_funding_c", "AF2_total_annual_funding_c",
-                   "AF1_total_one_time_funding_c", "AF2_total_one_time_funding_c",
-                   "AF2_percentage_values_c", "AF1_percentage_values_c",
-                   "selected_percentage_c"),
-      lower = c(AF1_annual, AF2_annual, AF1_one_time, AF2_one_time,
-                AF2_perc, AF1_perc, any_perc),
-      upper = c(AF1_annual, AF2_annual, AF1_one_time, AF2_one_time,
-                AF2_perc, AF1_perc, any_perc),
-      distribution = "const",
-      stringsAsFactors = FALSE
-    )
-  })
+  # funding_variables <- reactive({
+  #   sel <- funding$category_totals()        # named vector per category (gov)
+  #   
+  #   ## private inputs
+  #   onetime_private <- funding$onetime_private_input()
+  #   annual_private  <- funding$annual_private_input()
+  #   
+  #   # area / trees already entered elsewhere in UI
+  #   AF1_area  <- max(0, as.numeric(input$arable_area_c) - as.numeric(input$AF1_tree_row_area_c))
+  #   AF2_area  <- max(0, as.numeric(input$arable_area_c) - as.numeric(input$AF2_tree_row_area_c))
+  #   AF1_trees <- as.numeric(input$AF1_num_trees_c)
+  #   AF2_trees <- sum(as.numeric(input$num_oak_trees_c), as.numeric(input$num_birch_trees_c),
+  #                    as.numeric(input$num_rowan_trees_c), as.numeric(input$num_hazel_trees_c),
+  #                    as.numeric(input$num_damson_trees_c), as.numeric(input$num_bcherry_trees_c))
+  #   
+  #   # funding amounts per category
+  #   per_ha      <- safe_get(sel, "funding_onetime_per_ha_schemes_c")
+  #   per_tree    <- safe_get(sel, "funding_onetime_per_tree_schemes_c")
+  #   annual_ha   <- safe_get(sel, "annual_funding_schemes_c")
+  #   perc_incost <- safe_get(sel, "funding_onetime_percentage_initial_cost_schemes_c")
+  #   perc_cons   <- safe_get(sel, "funding_onetime_percentage_consult_schemes_c")
+  #   
+  #   # Compute totals
+  #   AF1_one_time   <- per_ha   * AF1_area  + per_tree * AF1_trees + onetime_private
+  #   AF2_one_time   <- per_ha   * AF2_area  + per_tree * AF2_trees + onetime_private
+  #   AF1_annual     <- annual_ha * AF1_area + annual_private * AF1_area
+  #   AF2_annual     <- annual_ha * AF2_area + annual_private * AF2_area
+  #   
+  #   AF1_perc <- perc_incost   # tie whichever category decided for AF1
+  #   AF2_perc <- perc_cons     # … and AF2
+  #   any_perc <- as.numeric((AF1_perc + AF2_perc) > 0)
+  #   
+  #   data.frame(
+  #     variable = c("AF1_total_annual_funding_c", "AF2_total_annual_funding_c",
+  #                  "AF1_total_one_time_funding_c", "AF2_total_one_time_funding_c",
+  #                  "AF2_percentage_values_c", "AF1_percentage_values_c",
+  #                  "selected_percentage_c"),
+  #     lower = c(AF1_annual, AF2_annual, AF1_one_time, AF2_one_time,
+  #               AF2_perc, AF1_perc, any_perc),
+  #     upper = c(AF1_annual, AF2_annual, AF1_one_time, AF2_one_time,
+  #               AF2_perc, AF1_perc, any_perc),
+  #     distribution = "const",
+  #     stringsAsFactors = FALSE
+  #   )
+  # })
   
   
   ## Dynamic expertise-filter module ----
@@ -587,14 +681,44 @@ server <- function(input, output, session) {
       select(-ends_with(".new"))
     
     # 3. Append funding scalars
-    fund_df <- funding_variables()
-    fund_df$lower[is.na(fund_df$lower)] <- 0
-    fund_df$upper[is.na(fund_df$upper)] <- 0
+    # View(input_file)
+    #print(1)
     
-    input_file <- bind_rows(
-      input_file %>% filter(!variable %in% fund_df$variable),
-      fund_df
-    )
+    funding_names <- 
+      c("funding_onetime_percentage_initial_cost_schemes_c", "annual_funding_schemes_c",
+        "funding_onetime_percentage_consult_schemes_c","funding_onetime_per_tree_schemes_c",
+        "funding_onetime_per_m_treerow_schemes_c", "funding_onetime_per_m_hedgerow_schemes_c","annual_funding_per_m_schemes_c",
+        "annual_funding_per_tree_schemes_c", "funding_onetime_schemes_c",
+        "onetime_external_percentage_incost_schemes_c","onetime_external_percentage_consult_schemes_c",
+        "funding_onetime_per_ha_schemes_c", "onetime_external_support_c", "annual_external_support_c")
+    funding_df <- data.frame(variable = funding_names,
+                             lower = 0,
+                             upper = 0,
+                             distribution = "const")
+    
+    try(total_funding <- funding$total_funding_with_private())
+    
+    if ("total_funding" %in% ls()) {
+      #print(2)
+      
+      input_file <- 
+        data.frame(variable = names(total_funding),
+                   lower = unname(total_funding),
+                   upper = unname(total_funding),
+                   distribution = "const") %>% 
+        bind_rows(input_file, .)
+      
+      remain <- funding_names[!(funding_names %in% input_file$variable)]
+      input_file <- funding_df %>% 
+        filter(variable %in% remain) %>% 
+        bind_rows(input_file, .)
+      
+      # View(input_file)
+    }else {
+      input_file <- bind_rows(input_file, funding_df)
+    }
+    
+    #View(input_file)
     
     # # 4. Save UI snapshot (optional)
     # saveRDS(list(sheet_names, input_file), "data/Walnut_grain_veg_tub_ui_updated.RDS")
@@ -613,6 +737,7 @@ server <- function(input, output, session) {
   
   ## Save/Load functionality ----
   # saveLoadServer("savemod", current_input_table)
+  # Provide Folder name instead of the current 'Germany' to store user saves
   get_base_dir <- function() {
     if (Sys.info()[["sysname"]] == "Windows")
       "user-states/Germany"
@@ -665,6 +790,7 @@ server <- function(input, output, session) {
   observeEvent(input$load_btn, {
     req(input$state_picker)
     obj <- readRDS(file.path(get_user_dir(), input$state_picker))
+    bslib::accordion_panel_open("collapseSidebar",TRUE,session)
     vals <- obj$raw_inputs
     
     restore_one <- function(id, val) {
@@ -723,6 +849,21 @@ server <- function(input, output, session) {
   
   ## Monte Carlo Simulation ----
   mcSimulation_results <- eventReactive(input$run_simulation, {
+    
+    waiter_show(
+      html = tagList(
+        spin_fading_circles(),
+        "Running Model and generating Plots ..."
+      ),
+      color = "rgba(0, 0, 0, 0.8)"
+    )
+    
+    # If something throws, hide the waiter so users aren't stuck
+    ok <- FALSE
+    on.exit({
+      if (!ok) waiter_hide()
+    }, add = TRUE)
+    
     # sadly this still needs to be assigned globally at the moment - otherwise the Model function wont see the vector.
     # functionSyntax = plainNames assigns the model to another variable with its own environment (e) - this environment only holds the input table and the model (does not see rot_vec)
     # assigning to globalEnv will assign it to an environment shared by up to 20 people. people could overwrite their crop rotation vector.
@@ -744,7 +885,8 @@ server <- function(input, output, session) {
     input_file <- current_input_table()
     
     # 6. Run Monte-Carlo
-    decisionSupport::mcSimulation(
+    # Provide model_function
+    data <- decisionSupport::mcSimulation(
       estimate          = decisionSupport::as.estimate(input_file),
       model_function    = AF_benefit_with_Risks,
       numberOfModelRuns = input$num_simulations_c,
@@ -754,6 +896,12 @@ server <- function(input, output, session) {
       # ,functionSyntax    = "data.frameNames"
       # ,crop_rotation     = rot_vec
     )
+    
+    # Hide AFTER dependent outputs have re-rendered
+    session$onFlushed(function() waiter_hide(), once = TRUE)
+    ok <- TRUE
+    
+    data
     
   })
   
@@ -770,33 +918,37 @@ server <- function(input, output, session) {
           face   = "bold",
           width  = unit(1, "npc"),  # full plot width
           halign = 0.5,              # centered
-          margin = margin(b = 6)
+          margin = margin(t = 6,b = 20)
         ),
         plot.subtitle = element_textbox_simple(
           size   = 18,
           width  = unit(1, "npc"),
           halign = 0.5,
-          margin = margin(b = 10)
+          margin = margin(t = 6,b = 20)
         ),
         plot.caption  = element_textbox_simple(
-          size   = 13,
-          width  = unit(1, "npc"),
+          size   = 16,
+          width  = unit(0.98, "npc"),
           halign = 0,              # left-aligned
-          margin = margin(t = 6),
-          hjust = 0
+          margin = margin(t = 6,b = 20),
+          hjust = 0,
+          vjust = 1
         ),
-        axis.title      = element_text(size = 14),
-        legend.text     = element_text(size = 11, hjust = 0.5),
-        legend.position = legend
+        axis.title = element_text(size = 16),
+        axis.text = element_text(size = 14),
+        legend.text     = element_text(size = 14, hjust = 0.5),
+        legend.position = legend,
+        plot.margin = margin(t = 50, r = 10, b = 50, l = 10, unit = "pt")
+        
       )  }
   
   # download helper
-  make_download <- function(id, plot_obj, filename, width = 13, height = 5, dpi = 300) {
+  make_download <- function(id, plot_obj, filename, width = 13, height = 5, dpi = 300, scale = 2) {
     output[[id]] <- downloadHandler(
       filename = function() filename,
       content  = function(file) {
         # device is inferred from file extension; here "png"
-        ggsave(file, plot_obj, width = width, height = height, dpi = dpi)
+        ggsave(file, plot_obj, width = width, height = height, dpi = dpi, scale = scale)
       }
     )
   }
@@ -805,77 +957,86 @@ server <- function(input, output, session) {
   
   observeEvent(mcSimulation_results(), {
     mc_data <- mcSimulation_results()
-    
+    # Provide correct variables for plots
     plot1 <-
       decisionSupport::plot_distributions(mcSimulation_object = mc_data,
-                                          vars = c("NPV_Treeless_System", "NPV_Agroforestry_no_fund", "NPV_Agroforestry_System", "NPV_DeFAF_Suggestion"),
-                                          method = "smooth_simple_overlay",
-                                          old_names = c("NPV_Treeless_System", "NPV_Agroforestry_no_fund", "NPV_Agroforestry_System", "NPV_DeFAF_Suggestion"),
-                                          new_names = c("Monoculture", "Agroforestry without funding", "Agroforestry with current funding", "Agroforestry with DeFAF fund"),
+                                          vars = c("NPV_Treeless_System", "NPV_Agroforestry_System"),
+                                          method = "boxplot",
+                                          #method = "smooth_simple_overlay",
+                                          old_names = c("NPV_Treeless_System", "NPV_Agroforestry_System"),
+                                          new_names = c("Monoculture (baseline)", "Agroforestry with current funding"),
                                           x_axis_name = "NPV (€)",
-                                          y_axis_name = "Probability") |>
+                                          y_axis_name = "Decision Options") |>
       add_meta(
         title    = "Figure 1. Probabilistic distributions of Net Present Value",
-        subtitle = "Agroforestry intervention with, without and DeFAF suggested funding (green) vs. conventional farming (blue)",
-        caption  = "Figure 1 shows the Net Present Value (NPV) distributions of 
-        the decision to establish the alley cropping system (green) and the 
-        decision to continue farming without planting trees (blue) for the timescope
-        of interest. The x-axis displays NPV values (i.e.: the sum of discounted
-        annual cash flows). The y-axis displays the probability of each NPV amount
-        to occur (i.e.: higer y-values indicate higher probability"
+        subtitle = "Agroforestry intervention with current funding vs. conventional farming",
+        caption  = "Figure 1 shows the comparison of Net Present Value (NPV) outcomes for agroforestry (Apple alley cropping) vs monoculture system (baseline). The x-axis displays NPV values (i.e., the sum of discounted annual cash flows). The higher and wider the box, the greater the potential return and variability in outcomes under that system."
       )
     
-    # plot2 <- decisionSupport::plot_distributions(
-    #   mc_data, "NPV_decision_AF1",
-    #   method     = "smooth_simple_overlay",
-    #   old_names  = "NPV_decision_AF1",
-    #   new_names  = "Agroforestry – Treeless",
-    #   x_axis_name= "NPV (€)",
-    #   y_axis_name= "Probability") |>
-    #   add_meta(
-    #     title    = "Figure 2. Distribution of the *incremental* NPV",
-    #     subtitle = "Difference between agroforestry and treeless farming under identical scenarios",
-    #     caption  = "Figure 2 shows the Net Present Value (NPV) distributions of the decision to establish the alley cropping system (green) 
-    #             as compared to the decision to continue farming without planting trees for the timescope of interest (i.e.: NPV agroforestry - NPV treeless under identical real-world scenarios).
-    #             The x-axis displays NPV values (i.e.: the sum of discounted annual cash flows).
-    #             The y-axis displays the probability of each NPV amount to occur (i.e.: higer y-values indicate higher probability"
-    #     , legend = "none")
+    # vars = c("NPV_Treeless_System", "NPV_Agroforestry_no_fund", "NPV_Agroforestry_System", "NPV_DeFAF_Suggestion"),
+    # method = "boxplot",
+    # old_names = c("NPV_Treeless_System", "NPV_Agroforestry_no_fund", "NPV_Agroforestry_System", "NPV_DeFAF_Suggestion"),
+    # new_names = c("Monoculture", "Agroforestry without funding", "Agroforestry with current funding", "Agroforestry with DeFAF-suggested funding"),
+    # x_axis_name = "NPV (€)",
+    
+    
+    plot2 <- decisionSupport::plot_distributions(
+      mc_data, "NPV_decis_AF_ES3",
+      method     = "smooth_simple_overlay",
+      old_names  = "NPV_decis_AF_ES3",
+      new_names  = "Agroforestry – Treeless",
+      x_axis_name= "NPV (€)",
+      y_axis_name= "Probability") |>
+      add_meta(
+        title    = "Figure 2. Distribution of the *incremental* NPV",
+        subtitle = "Difference between agroforestry and treeless farming under identical conditions",
+        caption  = "Figure 2 shows the NPV distributions of the decision to establish the apple alley cropping system
+                as compared to the decision to continue with monoculture for the specified time (i.e., NPV agroforestry - NPV monoculture under identical conditions).
+                The x-axis displays NPV values (i.e., the sum of discounted annual cash flows) and y-axis displays the probability of each NPV amount to occur (i.e., higer y-values indicate higher probability)"
+        , legend = "none")
     
     plot3 <- decisionSupport::plot_distributions(
       mc_data,
       vars      = c("NPV_decis_no_fund", "NPV_decis_AF_ES3", "NPV_decis_DeFAF"),
       method    = "boxplot",
       old_names = c("NPV_decis_no_fund", "NPV_decis_AF_ES3", "NPV_decis_DeFAF"),
-      new_names = c("Agroforestry without funding – Treeless", "Agroforestry with current funding – Treeless", "Agroforestry with DeFAF suggested fudning – Treeless"),
+      new_names = c("Agroforestry without\nfunding - Treeless", "Agroforestry with\ncurrent funding - Treeless", "Agroforestry with\nDeFAF-suggested funding - Treeless"),
       x_axis_name = "NPV (€)",
-      y_axis_name = "Probability") |>
+      y_axis_name = "Funding Options") |>
       add_meta(
-        title    = "Figure 2. Cost structure of the agroforestry project",
-        caption  = 'Figure 2 shows the costs (expressed in €) associated with each cost category of the decision to develop an alley-cropping system.
-                 The middle line of each box shows the median of its probability distribution.
-                 The extremes of each boxes show the first and third quartile of the probability distribution. 
-                 The extremes of the lines show the 5th and 95th percentile of the probability distribution. Dots are outliers beyond these percentiles.
-                 Please note that the "Bureaucratic work" and the "Maintenance" boxes show the sum of the annual costs of every year over the timescope period, whereas the "Planning and design" and "Planting" boxes occur only in one year.'
+        title    = "Figure 3. Net Present Value (NPV) Outcomes Across Funding Schemes for Apple Alley Cropping",
+        subtitle = "Agroforestry intervention with, without and DeFAF-suggested funding",
+        caption  = 'Figure 3 shows the comparison of net present value (NPV) outcomes for the decision of different agroforestry funding schemes. The x-axis displays NPV values (i.e., the sum of discounted annual cash flows); each colored boxplot represents a funding scheme, showing the range and distribution of simulation results from the probabilistic model.
+        The higher and wider the box, the greater the potential return and variability in outcomes under that funding.
+Scenarios involving funding (like DeFAF-suggested or EcoScheme3 and regional) generally show higher NPV ranges than the No funding, however it not necessarily better suggesting the current financial support is insufficient to sustain agroforestry.'
       )
     
     plot4 <- decisionSupport::plot_cashflow(
       mc_data, "AF_CF",
       x_axis_name = "",
-      y_axis_name = "Annual cash-flow (€)",
+      y_axis_name = "Annual cash-flow from Agroforestry (€)",
+      color_25_75 = "navajowhite",
+      color_5_95 = "green4",
+      color_median = "darkblue",
       facet_labels = "") |>
       add_meta(
-        title   = "Figure 3. Annual cash-flow of the agroforestry intervention", 
-        caption = 'Figure 3 shows the annual balance (expressed in €) of alley-cropping in the intervened field.'
+        title   = "Figure 4. Annual cash-flow of the agroforestry intervention", 
+        subtitle = "Projected yearly cash-flow variability for an agroforestry system over time",
+        caption = 'Figure 4 shows how annual cash-flow from an agroforestry intervention is expected to evolve, based on a probabilistic simulation. The shaded areas represent uncertainty ranges (from lower to upper quantiles), while the blue line shows the median outcome (expressed in €). While early years may involve negative cash flow, profitability tends to improve over time, with increasing stability. The graph highlights the long-term financial potential and risk spread of adopting agroforestry practices.'
       )
     
     plot5 <- decisionSupport::plot_cashflow(
       mc_data, "AF_CCF_ES3",
       x_axis_name = "",
-      y_axis_name = "Cumulative cash-flow (€)",
+      y_axis_name = "Cumulative cash-flow from Agroforestry (€)",
+      color_25_75 = "navajowhite",
+      color_5_95 = "green4",
+      color_median = "darkblue",
       facet_labels = "") |>
       add_meta(
         title   = "Figure 5. Cumulative cash-flow of the agroforestry intervention", 
-        caption = "Figure 5 shows the cumulative annual balance (expressed in €) of alley-cropping in the intervened field."
+        subtitle = "Long-term cumulative cash-flow projection for an agroforestry system",
+        caption = "Figure 5  illustrates how total cash-flow (expressed in €) accumulates over time from an agroforestry intervention, based on a range of simulated outcomes. The shaded areas represent uncertainty (spread of possible results), and the blue line indicates the median trajectory. Cumulative returns grow steadily over time, showing the long-term profitability potential of agroforestry. Despite initial variability, the system trends positively, reinforcing the case for agroforestry as a viable financial investment over the long run."
       )
     
     # plot6 <- decisionSupport::plot_cashflow(
@@ -906,14 +1067,14 @@ server <- function(input, output, session) {
       downloadButton("download_plot1", "Download Figure 1")
     })
     
-    # output$plot2_ui <- renderPlot({ plot2 })
-    # make_download("download_plot2", plot2, "Figure2_Incremental_NPV.png")
-    # output$plot2_dl_ui <- renderUI({
-    #   downloadButton("download_plot2", "Download Figure 2")
-    # })
+    output$plot2_ui <- renderPlot({ plot2 })
+    make_download("download_plot2", plot2, "Figure2_Decision_NPV.png")
+    output$plot2_dl_ui <- renderUI({
+      downloadButton("download_plot2", "Download Figure 2")
+    })
     
     output$plot3_ui <- renderPlot({ plot3 })
-    make_download("download_plot3", plot3, "Figure3_Incremental_NPV.png")
+    make_download("download_plot3", plot3, "Figure3_Funding_NPVs.png")
     output$plot3_dl_ui <- renderUI({
       downloadButton("download_plot3", "Download Figure 3")
     })
@@ -940,15 +1101,15 @@ server <- function(input, output, session) {
     # make_download("download_plot7", plot7, "Figure7_Incremental_Cumulative_CF.png")
     # output$plot7_dl_ui <- renderUI({
     #   downloadButton("download_plot7", "Download Figure 7")
-    })
+    # })
     
-
+    
     # Ask user whether to run EVPI (takes time!)
     showModal(modalDialog(
       title = "Run EVPI analysis?",
       "Do you want to assess the Expected Value of Perfect Information (EVPI)?
       This step may take a while, but you can explore the other graphs while the EVPI is processed.
-      The EVPI graph will appear at the bottom of the page, below the last of the other graphs.",
+      The EVPI graph will appear at the bottom of the page, below the last graph.",
       footer = tagList(
         modalButton("No"),
         actionButton("confirm_evpi", "Yes, run EVPI")
@@ -966,7 +1127,7 @@ server <- function(input, output, session) {
           mc_data$x,
           NPV_decision_AF1 = mc_data$y$NPV_decis_AF_ES3
         ))
-        
+        # Provide the NPV_decision variable to calculate EVPI
         evpi_result <- decisionSupport::multi_EVPI(evpi_input, "NPV_decis_AF_ES3")
         
         # saveRDS(evpi_input, "evpi_input_test.rds")
@@ -987,7 +1148,7 @@ server <- function(input, output, session) {
         plot8 <- plot8 |>
           add_meta(title = "Figure 8. EVPI for Each Variable",
                    subtitle = "Maximum amount worth paying for perfect information on each variable."
-                   )
+          )
         
         output$plot8_ui <- renderPlot({ plot8 })
         
@@ -1006,8 +1167,8 @@ server <- function(input, output, session) {
       })
     })
     
-#   })
-#   
+  })
+  
 }
 
 shinyApp(ui = ui, server = server)
