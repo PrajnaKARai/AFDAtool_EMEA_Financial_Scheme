@@ -267,11 +267,12 @@ ui <- fluidPage(
               # ),
               # Provide brief explanation of the DA model
               tags$h6(
-                "This app simulates the present value of converting a treeless arable field into an alley cropping system with trees. It is kept very general so that all farmers irrespective of the type of treee they have planted or plan to plant on their farm can simulate and visualisze the impact it has on their Net Present Value (NPV).",
+                "This app simulates the present value of converting a treeless arable field into an alley cropping system in temparate European conidtions. It is kept very general so that all farmers irrespective of the type of treee they have planted or plan to plant on their farm can simulate and visualisze the impact it has on their Net Present Value (NPV).",
+                tags$br(),
+                "While the tool currently displays costs and prices in euros (€), please use your local currency when entering data, as the funding information for each country has been collected based on its respective currency.",
                 tags$br(),
                 tags$br(),
                 "Use the tabs on the left to adjust variable ranges based on your local conditions or design goals.",
-                tags$br(),
                 tags$br(),
                 "Click ‘Run model’ to perform a Monte Carlo simulation using random combinations from your defined ranges.You can save/load inputs, and once the model runs, results will appear below and you can save these figures.",
                 tags$br(),
@@ -280,8 +281,8 @@ ui <- fluidPage(
                 tags$br(),
                 "DeFAF-suggested funding for German agroforestry: Annual support of 600 € per ha of wooded area and investment costs are to be funded at 100 % for first 10 ha of wooded area, 80 % for the next 10 ha, 50 % for additional area.",
                 tags$br(),
-                tags$br(),
                 "The Finanacial Scheme recommended by EMEA is modelled here and as a user you can select the ones that is most relevant to you.",
+                tags$br(),
                 tags$br(),
                 "We welcome your feedback and encourage you to suggest additional funding schemes for your region. Feel free to contact",
                 tags$a(href = "mailto:pkasargo@uni-bonn.de", "Prajna Kasargodu Anebagilu"), "or", tags$a(href = "mailto:afuelle1@uni-bonn.de", "Adrain Fuelle."),
@@ -965,7 +966,7 @@ server <- function(input, output, session) {
                                           #method = "smooth_simple_overlay",
                                           old_names = c("NPV_Treeless_System", "NPV_Agroforestry_System"),
                                           new_names = c("Monoculture (baseline)", "Agroforestry with current funding"),
-                                          x_axis_name = "NPV (€)",
+                                          x_axis_name = "Net Present Value (€) over the time period for the provided field size",
                                           y_axis_name = "Decision Options") |>
       add_meta(
         title    = "Figure 1. Probabilistic distributions of Net Present Value",
