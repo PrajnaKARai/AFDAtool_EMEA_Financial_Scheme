@@ -62,17 +62,17 @@ server <- function(input, output, session) {
   })
   
   # Summary stats
-  output$summaryStats <- renderPrint({
-    df <- run_all_simulations()
-    df %>%
-      group_by(Scenario) %>%
-      summarise(
-        Mean_NPV = mean(NPV),
-        Median_NPV = median(NPV),
-        P5 = quantile(NPV, 0.05),
-        P95 = quantile(NPV, 0.95)
-      )
-  })
+  # output$summaryStats <- renderPrint({
+  #   df <- run_all_simulations()
+  #   df %>%
+  #     group_by(Scenario) %>%
+  #     summarise(
+  #       Mean_NPV = mean(NPV),
+  #       Median_NPV = median(NPV),
+  #       P5 = quantile(NPV, 0.05),
+  #       P95 = quantile(NPV, 0.95)
+  #     )
+  # })
 }
 
 shinyApp(ui, server)
