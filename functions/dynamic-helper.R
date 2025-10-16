@@ -10,11 +10,13 @@ create_ui_element <- function(row) {
   
   # ---------- quick check for layout-only rows -------------------------------
   special <- tolower(trimws(row[["ui_type"]]))
-  if (special %in% c("header4", "horizontal line", "break")) {
+  if (special %in% c("header4", "header5", "header6", "horizontal line", "break")) {
     
     ui_obj <- switch(
       special,
       "header4"        = h4(row[["name"]] %||% ""),
+      "header5"        = h5(row[["name"]] %||% ""),
+      "header6"        = h6(row[["name"]] %||% ""),
       "horizontal line"= tags$hr(),
       "break"          = tags$br()
     )

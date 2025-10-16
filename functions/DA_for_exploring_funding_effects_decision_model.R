@@ -4,7 +4,7 @@
 # Packages needed ####
 
 # install.packages("decisionSupport")
-library(decisionSupport)
+#library(decisionSupport)
 
 #Defining the probabilistic model
 #!!NOTE:variables that are in all lower case are from the input_table.csv and the rest (with any upper case letter) are defined and calculated within the code
@@ -14,8 +14,8 @@ AF_benefit_with_Risks <- function(x, varnames)
   
   #yield failure due to weather events
   
-  Arable_yield_if_extreme_weather <- vv(value_if_extreme_weather_p, var_cv = var_cv_p, n = n_years_c, lower_limit = 0.8, upper_limit = 0.9)
-  AF_arable_yield_if_extreme_weather <- vv(Arable_yield_if_extreme_weather, var_cv = var_cv_p, n = n_years_c, absolute_trend = trees_yield_buffering_effect_trend_p, lower_limit = 0.8, upper_limit = 1)
+  Arable_yield_if_extreme_weather <- vv(value_if_extreme_weather_p, var_CV = var_cv_p, n = n_years_c, lower_limit = 0.8, upper_limit = 0.9)
+  AF_arable_yield_if_extreme_weather <- vv(Arable_yield_if_extreme_weather, var_CV = var_cv_p, n = n_years_c, absolute_trend = trees_yield_buffering_effect_trend_p, lower_limit = 0.8, upper_limit = 1)
   
   Value_if_not <- rep(1, n_years_c)
   
@@ -42,13 +42,13 @@ AF_benefit_with_Risks <- function(x, varnames)
   
   #Labour hours needed to manage crops (per ha per year)
   Maize_labour <- rep(0, n_years_c)
-  Maize_labour[Maize_indices] <- vv(maize_labour_p, cv_maize_labour, length(Maize_indices))
+  Maize_labour[Maize_indices] <- vv(maize_labour_p, cv_maize_labour_c, length(Maize_indices))
   Wheat_labour <- rep(0, n_years_c)
-  Wheat_labour[Wheat_indices] <- vv(wheat_labour_p, cv_wheat_labour, length(Wheat_indices)) 
+  Wheat_labour[Wheat_indices] <- vv(wheat_labour_p, cv_wheat_labour_c, length(Wheat_indices)) 
   Barley_labour <- rep(0, n_years_c)
-  Barley_labour[Barley_indices] <- vv(barley_labour_p, cv_barley_labour, length(Barley_indices))
+  Barley_labour[Barley_indices] <- vv(barley_labour_p, cv_barley_labour_c, length(Barley_indices))
   Rapeseed_labour <- rep(0, n_years_c)
-  Rapeseed_labour[Rapeseed_indices] <- vv(rapeseed_labour_p, cv_rapeseed_labour, length(Rapeseed_indices))
+  Rapeseed_labour[Rapeseed_indices] <- vv(rapeseed_labour_p, cv_rapeseed_labour_c, length(Rapeseed_indices))
   #----------------------------------------------------------------------------------------------------------- 
   
   #BASELINE SYSTEM - TREELESS ARABLE AGRICULTURE ####
@@ -66,7 +66,7 @@ AF_benefit_with_Risks <- function(x, varnames)
   
   #maize
   Treeless_maize_sowing_cost <- rep(0, n_years_c)#create vector with as many zeros as number of years in simulation
-  Treeless_maize_sowing_cost[Maize_indices] <- vv(maize_seed_price_p, cv_maize_seed_price, length(Maize_indices)) * arable_area_treeless_c #fill vector with values at specific positions corresponding to the years maize is present in the crop rotation #cost of seed [€/ha]*area managed [ha]
+  Treeless_maize_sowing_cost[Maize_indices] <- vv(maize_seed_price_p, cv_maize_seed_price_c, length(Maize_indices)) * arable_area_treeless_c #fill vector with values at specific positions corresponding to the years maize is present in the crop rotation #cost of seed [€/ha]*area managed [ha]
   
   Treeless_maize_fertilizer_cost <- rep(0, n_years_c)
   Treeless_maize_fertilizer_cost[Maize_indices] <- vv(maize_fert_price_p, cv_maize_fert_price_c, length(Maize_indices)) * arable_area_treeless_c #cost of fertilizer [€/ha]*area managed [ha]
@@ -208,18 +208,18 @@ AF_benefit_with_Risks <- function(x, varnames)
                                    first_yield_estimate_percent = apple_yield_first_p,
                                    second_yield_estimate_percent = apple_yield_second_p,
                                    n_years=n_years_c,
-                                   var_cv = var_cv_p,
+                                   var_CV = var_cv_p,
                                    no_yield_before_first_estimate = TRUE)
   #Yield of 473 apple trees [kg]  
   AF_tot_apple_yield <- (AF_apple_yield - AF_apple_yield * apple_postharvest_loss_p) * num_trees_c *Apple_yield_reduction_due_to_weather #Post-harvest losses and possibility of yield reduction due to extreme weather integrated here.
   #Calculate how many kg have table apple quality and can therefore be marketed at a highest price in percentage
-  Pc_table_apples <- vv(perc_table_apple_p, var_cv = var_cv_p, n_years_c)/100
+  Pc_table_apples <- vv(perc_table_apple_p, var_CV = var_cv_p, n_years_c)/100
   
   Table_apple_yield <- AF_tot_apple_yield * Pc_table_apples #amount of highest quality apples [kg]
   
   Lower_qual_apple_yield <- AF_tot_apple_yield * (1-Pc_table_apples) #rest of yield is classified as lower quality
   
-  Pc_b_qual_apple <- vv(perc_bqual_apple_p, var_cv = var_cv_p, n_years_c)/100 #B-quality apples can still be sold in direct selling operation, but at significantly lower price
+  Pc_b_qual_apple <- vv(perc_bqual_apple_p, var_CV = var_cv_p, n_years_c)/100 #B-quality apples can still be sold in direct selling operation, but at significantly lower price
   
   B_qual_table_apple_yield <- Lower_qual_apple_yield * Pc_b_qual_apple #amount of  B-quality apples [kg]
   
@@ -246,7 +246,7 @@ AF_benefit_with_Risks <- function(x, varnames)
     time_to_second_yield_estimate = time_to_second_reduction_c,
     first_yield_estimate_percent = perc_max_first_reduction_p,
     second_yield_estimate_percent = perc_max_second_reduction_p,
-    n_years_c = n_years_c)
+    n_years = n_years_c)
   
   #Crop rotation in AF system
   
@@ -257,23 +257,32 @@ AF_benefit_with_Risks <- function(x, varnames)
   
   
   AF_maize_yield <- Treeless_maize_yield*AF_arable_area_perc*AF_yield_reduction_due_to_weather *(1 - perc_yield_reduction)
-  AF_maize_benefit <- AF_maize_yield * maize_value
+  AF_maize_benefit <- AF_maize_yield * maize_value_p
   
   AF_wheat_yield <- Treeless_wheat_yield*AF_arable_area_perc*AF_yield_reduction_due_to_weather*(1 - perc_yield_reduction)
-  AF_wheat_benefit <- AF_wheat_yield * wheat_value
+  AF_wheat_benefit <- AF_wheat_yield * wheat_value_p
   
   AF_barley_yield <- Treeless_barley_yield*AF_arable_area_perc*AF_yield_reduction_due_to_weather*(1 - perc_yield_reduction)
-  AF_barley_benefit<- AF_barley_yield * barley_value
+  AF_barley_benefit<- AF_barley_yield * barley_value_p
   
   AF_rapeseed_yield <- Treeless_rapeseed_yield*AF_arable_area_perc*AF_yield_reduction_due_to_weather*(1 - perc_yield_reduction)
-  AF_rapeseed_benefit <- AF_rapeseed_yield * rapeseed_value
+  AF_rapeseed_benefit <- AF_rapeseed_yield * rapeseed_value_p
   
   #Subsidy in AF system
   ES3_subsidy <- rep(0, n_years_c)
-  ES3_subsidy[1:n_years_c] <- es3_subsidy * tree_row_area_c
+  # ES3_subsidy[1:n_years_c] <- es3_subsidy * tree_row_area_c
+  # annual_funding_schemes_c <- annual_funding_schemes_c %||% 0
+  ES3_subsidy[1:n_years_c] <- annual_funding_schemes_c * tree_row_area_c
   
   LEADER_subsidy <- rep(0, n_years_c)
-  LEADER_subsidy[1] <- leader_funding
+  # funding_onetime_schemes_c <- funding_onetime_schemes_c %||% 0
+  LEADER_subsidy[1] <- funding_onetime_schemes_c
+  
+  # external support
+  Annual_external_support <- rep((tree_row_area_c *annual_external_support_c),  n_years_c)
+  Onetime_external_support <- rep(0, n_years_c)
+  Onetime_external_support[1] <- funding_onetime_schemes_c
+  
   
   #Calculating costs in AF system ####
   #First creating vector, with as many zeros as there are years in the simulation, indicated by the value of "n_years_c" in the input table
@@ -425,7 +434,7 @@ AF_benefit_with_Risks <- function(x, varnames)
   
   
   #Scenario 1: Agroforestry bottom line with ES3 + regional one-time funding (LEADER Region Steinfurter Land) ####
-  AF_total_benefit <- AF_apple_benefit + AF_maize_benefit + AF_wheat_benefit + AF_barley_benefit + AF_rapeseed_benefit + ES3_subsidy + LEADER_subsidy
+  AF_total_benefit <- AF_apple_benefit + AF_maize_benefit + AF_wheat_benefit + AF_barley_benefit + AF_rapeseed_benefit + ES3_subsidy + LEADER_subsidy + Annual_external_support + Onetime_external_support
   
   AF_bottom_line_benefit <- AF_total_benefit - AF_total_cost
   
@@ -481,8 +490,8 @@ AF_benefit_with_Risks <- function(x, varnames)
   
   #DeFAF annual subsidy 
   
-  DeFAF_ES3 <- es3_subsidy*3 - ES3_application #suggested level of ES3 subsidy
- 
+  DeFAF_ES3 <- annual_funding_schemes_c*3 - ES3_application #suggested level of ES3 subsidy
+  
   DeFAF_annual_sub <- DeFAF_ES3
   
   #DeFAF Investment support funding scheme (first 10 ha 100 % funded, next 10 ha 80 % funded, every additional ha 50 % funded)
@@ -548,7 +557,7 @@ AF_benefit_with_Risks <- function(x, varnames)
     AF_CCF_no_fund=AF_cum_cash_flow_no_fund,
     AF_CCF_DeFAF = AF_cum_cash_flow_DeFAF,
     AF_CF = AF_cash_flow
-    ))
+  ))
 }
 # END of the Decision Model ####
 #Run the Monte Carlo analysis of the model
